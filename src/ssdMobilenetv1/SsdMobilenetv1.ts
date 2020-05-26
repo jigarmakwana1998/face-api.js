@@ -19,6 +19,7 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
   constructor() {
     super('SsdMobilenetv1')
   }
+  save_conv1: any;
 
   public forwardInput(input: NetInput) {
 
@@ -33,18 +34,31 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
 
       const x = tf.sub(tf.mul(batchTensor, tf.scalar(0.007843137718737125)), tf.scalar(1)) as tf.Tensor4D
       const features = mobileNetV1(x, params.mobilenetv1)
-
+      this.save_conv1 = tf.keep(features.save_conv1)
       const {
         boxPredictions,
         classPredictions
       } = predictionLayer(features.out, features.conv11, params.prediction_layer)
 
-      return outputLayer(boxPredictions, classPredictions, params.output_layer)
+      return outputLayer(boxPredictions, classPredictions, params.output_layer);
     })
   }
 
   public async forward(input: TNetInput) {
     return this.forwardInput(await toNetInput(input))
+  }
+
+  public async getConvLayer() {
+    return this.save_conv1
+  }
+
+  public async getGrayScale() {
+    let [preconv, saveconv, postconv] = tf.split(this.save_conv1, [5, 1, 58], 3);
+    saveconv = saveconv.mul(255 / 6.0);
+    let convertedconv = saveconv.as2D(256, 256);
+    let alpha = tf.fill([256, 256], 255)
+    let grayScaleImage = tf.stack([convertedconv, convertedconv, convertedconv, alpha], 2)
+    return grayScaleImage.as1D().arraySync()
   }
 
   public async locateFaces(
@@ -84,8 +98,8 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
 
     const reshapedDims = netInput.getReshapedInputDimensions(0)
     const inputSize = netInput.inputSize as number
-    const padX = inputSize / reshapedDims.width
-    const padY = inputSize / reshapedDims.height
+    const padX = inputSize / inputSize
+    const padY = inputSize / inputSize
 
     const boxesData = boxes.arraySync()
     const results = indices

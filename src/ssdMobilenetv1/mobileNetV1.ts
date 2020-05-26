@@ -31,6 +31,8 @@ function getStridesForLayerIdx(layerIdx: number): [number, number] {
 }
 
 export function mobileNetV1(x: tf.Tensor4D, params: MobileNetV1.Params) {
+  let save_conv1: number[][][][];
+
   return tf.tidy(() => {
 
     let conv11 = null
@@ -60,7 +62,10 @@ export function mobileNetV1(x: tf.Tensor4D, params: MobileNetV1.Params) {
       if (layerIdx === 11) {
         conv11 = out
       }
-    })
+      if (layerIdx === 1) {
+        save_conv1 = out.arraySync();
+      }
+    });
 
     if (conv11 === null) {
       throw new Error('mobileNetV1 - output of conv layer 11 is null')
@@ -68,8 +73,9 @@ export function mobileNetV1(x: tf.Tensor4D, params: MobileNetV1.Params) {
 
     return {
       out,
-      conv11: conv11 as any
-    }
+      conv11: conv11 as any,
+      save_conv1: save_conv1 as any
+    };
 
-  })
+  });
 }

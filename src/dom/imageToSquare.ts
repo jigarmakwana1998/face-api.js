@@ -12,16 +12,16 @@ export function imageToSquare(input: HTMLImageElement | HTMLCanvasElement, input
   }
 
   const dims = getMediaDimensions(input)
-  const scale = inputSize / Math.max(dims.height, dims.width)
+  const scale = inputSize / Math.min(dims.height, dims.width)
   const width = scale * dims.width
   const height = scale * dims.height
 
   const targetCanvas = createCanvas({ width: inputSize, height: inputSize })
   const inputCanvas = input instanceof Canvas ? input : createCanvasFromMedia(input)
 
-  const offset = Math.abs(width - height) / 2
-  const dx = centerImage && width < height ? offset : 0
-  const dy = centerImage && height < width ? offset : 0
+  // const offset = Math.abs(width - height) / 2
+  const dx = -Math.abs(width - inputSize) / 2
+  const dy = -Math.abs(height - inputSize) / 2
   getContext2dOrThrow(targetCanvas).drawImage(inputCanvas, dx, dy, width, height)
 
   return targetCanvas
