@@ -468,7 +468,7 @@
   }
   function computeReshapedDimensions(_a, inputSize) {
       var width = _a.width, height = _a.height;
-      var scale = inputSize / Math.max(height, width);
+      var scale = inputSize / Math.min(height, width);
       return new Dimensions(Math.round(width * scale), Math.round(height * scale));
   }
   function getCenterPoint(pts) {
@@ -1319,10 +1319,10 @@
       // check for isBrowser() first to prevent electron renderer process
       // to be initialized with wrong environment due to isNodejs() returning true
       if (isBrowser()) {
-          setEnv(createBrowserEnv());
+          return setEnv(createBrowserEnv());
       }
       if (isNodejs()) {
-          setEnv(createNodejsEnv());
+          return setEnv(createNodejsEnv());
       }
   }
   function monkeyPatch(env) {
@@ -1614,20 +1614,19 @@
   }
 
   function imageToSquare(input, inputSize, centerImage) {
-      if (centerImage === void 0) { centerImage = false; }
       var _a = env.getEnv(), Image = _a.Image, Canvas = _a.Canvas;
       if (!(input instanceof Image || input instanceof Canvas)) {
           throw new Error('imageToSquare - expected arg0 to be HTMLImageElement | HTMLCanvasElement');
       }
       var dims = getMediaDimensions(input);
-      var scale = inputSize / Math.max(dims.height, dims.width);
+      var scale = inputSize / Math.min(dims.height, dims.width);
       var width = scale * dims.width;
       var height = scale * dims.height;
       var targetCanvas = createCanvas({ width: inputSize, height: inputSize });
       var inputCanvas = input instanceof Canvas ? input : createCanvasFromMedia(input);
-      var offset = Math.abs(width - height) / 2;
-      var dx = centerImage && width < height ? offset : 0;
-      var dy = centerImage && height < width ? offset : 0;
+      // const offset = Math.abs(width - height) / 2
+      var dx = -Math.abs(width - inputSize) / 2;
+      var dy = -Math.abs(height - inputSize) / 2;
       getContext2dOrThrow(targetCanvas).drawImage(inputCanvas, dx, dy, width, height);
       return targetCanvas;
   }
@@ -1760,7 +1759,7 @@
                       return imgTensor.as3D(inputSize, inputSize, 3);
                   }
                   if (input instanceof env.getEnv().Canvas) {
-                      return id.fromPixels(imageToSquare(input, inputSize, isCenterInputs));
+                      return id.fromPixels(imageToSquare(input, inputSize));
                   }
                   throw new Error("toBatchTensor - at batchIdx " + batchIdx + ", expected input to be instanceof tf.Tensor or instanceof HTMLCanvasElement, instead have " + input);
               });
@@ -3987,6 +3986,7 @@
       return [2, 4, 6, 12].some(function (idx) { return idx === layerIdx; }) ? [2, 2] : [1, 1];
   }
   function mobileNetV1(x, params) {
+      var save_conv1;
       return Ze(function () {
           var conv11 = null;
           var out = pointwiseConvLayer(x, params.conv_0, [2, 2]);
@@ -4013,13 +4013,20 @@
               if (layerIdx === 11) {
                   conv11 = out;
               }
+              if (layerIdx === 1) {
+                  // let [preconv, saveconv, postconv] = tf.split(out, [4, 1, 59], 3);
+                  // saveconv = saveconv.mul(255 / 6.0);
+                  // let convertedconv = saveconv.as2D(256,256);
+                  save_conv1 = out.arraySync();
+              }
           });
           if (conv11 === null) {
               throw new Error('mobileNetV1 - output of conv layer 11 is null');
           }
           return {
               out: out,
-              conv11: conv11
+              conv11: conv11,
+              save_conv1: save_conv1
           };
       });
   }
@@ -4207,6 +4214,7 @@
           return _super.call(this, 'SsdMobilenetv1') || this;
       }
       SsdMobilenetv1.prototype.forwardInput = function (input) {
+          var _this = this;
           var params = this.params;
           if (!params) {
               throw new Error('SsdMobilenetv1 - load model before inference');
@@ -4215,6 +4223,7 @@
               var batchTensor = input.toBatchTensor(512, false).toFloat();
               var x = Cc(gc(batchTensor, On(0.007843137718737125)), On(1));
               var features = mobileNetV1(x, params.mobilenetv1);
+              _this.save_conv1 = en(features.save_conv1);
               var _a = predictionLayer(features.out, features.conv11, params.prediction_layer), boxPredictions = _a.boxPredictions, classPredictions = _a.classPredictions;
               return outputLayer(boxPredictions, classPredictions, params.output_layer);
           });
@@ -4229,6 +4238,26 @@
                           return [4 /*yield*/, toNetInput(input)];
                       case 1: return [2 /*return*/, _a.apply(this, [_b.sent()])];
                   }
+              });
+          });
+      };
+      SsdMobilenetv1.prototype.getConvLayer = function () {
+          return __awaiter(this, void 0, void 0, function () {
+              return __generator(this, function (_a) {
+                  return [2 /*return*/, this.save_conv1];
+              });
+          });
+      };
+      SsdMobilenetv1.prototype.getGrayScale = function () {
+          return __awaiter(this, void 0, void 0, function () {
+              var _a, preconv, saveconv, postconv, convertedconv, alpha, grayScaleImage;
+              return __generator(this, function (_b) {
+                  _a = tr(this.save_conv1, [4, 1, 59], 3), preconv = _a[0], saveconv = _a[1], postconv = _a[2];
+                  saveconv = saveconv.mul(255 / 6.0);
+                  convertedconv = saveconv.as2D(256, 256);
+                  alpha = Hn([256, 256], 255);
+                  grayScaleImage = Pr([convertedconv, convertedconv, convertedconv, alpha], 2);
+                  return [2 /*return*/, grayScaleImage.as1D().arraySync()];
               });
           });
       };
@@ -4258,8 +4287,8 @@
                           indices = nonMaxSuppression$1(boxes, scoresData, maxResults, iouThreshold, minConfidence);
                           reshapedDims = netInput.getReshapedInputDimensions(0);
                           inputSize = netInput.inputSize;
-                          padX = inputSize / reshapedDims.width;
-                          padY = inputSize / reshapedDims.height;
+                          padX = inputSize / inputSize;
+                          padY = inputSize / inputSize;
                           boxesData = boxes.arraySync();
                           results = indices
                               .map(function (idx) {
