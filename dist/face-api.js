@@ -4014,10 +4014,7 @@
                   conv11 = out;
               }
               if (layerIdx === 1) {
-                  // let [preconv, saveconv, postconv] = tf.split(out, [4, 1, 59], 3);
-                  // saveconv = saveconv.mul(255 / 6.0);
-                  // let convertedconv = saveconv.as2D(256,256);
-                  save_conv1 = out.arraySync();
+                  save_conv1 = out;
               }
           });
           if (conv11 === null) {
@@ -4244,16 +4241,15 @@
       SsdMobilenetv1.prototype.getConvLayer = function () {
           return __awaiter(this, void 0, void 0, function () {
               return __generator(this, function (_a) {
-                  return [2 /*return*/, this.save_conv1];
+                  return [2 /*return*/, this.save_conv1.arraySync()];
               });
           });
       };
       SsdMobilenetv1.prototype.getGrayScale = function () {
           return __awaiter(this, void 0, void 0, function () {
-              var _a, preconv, saveconv, postconv, convertedconv, alpha, grayScaleImage;
-              return __generator(this, function (_b) {
-                  _a = tr(this.save_conv1, [4, 1, 59], 3), preconv = _a[0], saveconv = _a[1], postconv = _a[2];
-                  saveconv = saveconv.mul(255 / 6.0);
+              var saveconv, convertedconv, alpha, grayScaleImage;
+              return __generator(this, function (_a) {
+                  saveconv = this.save_conv1.slice([0, 0, 0, 4], [1, 256, 256, 1]).mul(255 / 6.0);
                   convertedconv = saveconv.as2D(256, 256);
                   alpha = Hn([256, 256], 255);
                   grayScaleImage = Pr([convertedconv, convertedconv, convertedconv, alpha], 2);
