@@ -468,7 +468,7 @@
   }
   function computeReshapedDimensions(_a, inputSize) {
       var width = _a.width, height = _a.height;
-      var scale = inputSize / Math.min(height, width);
+      var scale = inputSize / Math.max(height, width);
       return new Dimensions(Math.round(width * scale), Math.round(height * scale));
   }
   function getCenterPoint(pts) {
@@ -4247,13 +4247,15 @@
       };
       SsdMobilenetv1.prototype.getGrayScale = function () {
           return __awaiter(this, void 0, void 0, function () {
-              var saveconv, convertedconv, alpha, grayScaleImage;
+              var _this = this;
               return __generator(this, function (_a) {
-                  saveconv = this.save_conv1.slice([0, 0, 0, 4], [1, 256, 256, 1]).mul(255 / 6.0);
-                  convertedconv = saveconv.as2D(256, 256);
-                  alpha = Hn([256, 256], 255);
-                  grayScaleImage = Pr([convertedconv, convertedconv, convertedconv, alpha], 2);
-                  return [2 /*return*/, grayScaleImage.as1D().arraySync()];
+                  return [2 /*return*/, Ze(function () {
+                          var saveconv = _this.save_conv1.slice([0, 0, 0, 5], [1, 256, 256, 1]).mul(255 / 6.0);
+                          var convertedconv = saveconv.as2D(256, 256);
+                          var alpha = Hn([256, 256], 255);
+                          var grayScaleImage = Pr([convertedconv, convertedconv, convertedconv, alpha], 2);
+                          return grayScaleImage.as1D().arraySync();
+                      })];
               });
           });
       };
