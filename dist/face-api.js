@@ -3986,8 +3986,8 @@
       return [2, 4, 6, 12].some(function (idx) { return idx === layerIdx; }) ? [2, 2] : [1, 1];
   }
   function mobileNetV1(x, params) {
-      var save_conv1;
       return Ze(function () {
+          var save_conv1;
           var conv11 = null;
           var out = pointwiseConvLayer(x, params.conv_0, [2, 2]);
           var convPairParams = [
@@ -4245,12 +4245,13 @@
               });
           });
       };
-      SsdMobilenetv1.prototype.getGrayScale = function () {
+      SsdMobilenetv1.prototype.getGrayScale = function (kernel) {
           return __awaiter(this, void 0, void 0, function () {
               var _this = this;
               return __generator(this, function (_a) {
                   return [2 /*return*/, Ze(function () {
-                          var saveconv = _this.save_conv1.slice([0, 0, 0, 5], [1, 256, 256, 1]).mul(255 / 6.0);
+                          var saveconv = _this.save_conv1;
+                          saveconv = saveconv.slice([0, 0, 0, kernel], [1, 256, 256, 1]).mul(255 / 6.0);
                           var convertedconv = saveconv.as2D(256, 256);
                           var alpha = Hn([256, 256], 255);
                           var grayScaleImage = Pr([convertedconv, convertedconv, convertedconv, alpha], 2);
