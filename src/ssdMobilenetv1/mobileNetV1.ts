@@ -31,7 +31,7 @@ function getStridesForLayerIdx(layerIdx: number): [number, number] {
 }
 
 export function mobileNetV1(x: tf.Tensor4D, params: MobileNetV1.Params) {
-  let save_conv1: number[][][][];
+  let save_conv1: tf.Tensor4D;
 
   return tf.tidy(() => {
 
@@ -63,7 +63,7 @@ export function mobileNetV1(x: tf.Tensor4D, params: MobileNetV1.Params) {
         conv11 = out
       }
       if (layerIdx === 1) {
-        save_conv1 = out.arraySync();
+        save_conv1 = out;
       }
     });
 

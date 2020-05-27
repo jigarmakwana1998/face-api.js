@@ -49,15 +49,14 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
   }
 
   public async getConvLayer() {
-    return this.save_conv1
+    return this.save_conv1.arraySync()
   }
 
   public async getGrayScale() {
-    let [preconv, saveconv, postconv] = tf.split(this.save_conv1, [5, 1, 58], 3);
-    saveconv = saveconv.mul(255 / 6.0);
-    let convertedconv = saveconv.as2D(256, 256);
-    let alpha = tf.fill([256, 256], 255)
-    let grayScaleImage = tf.stack([convertedconv, convertedconv, convertedconv, alpha], 2)
+    let saveconv = this.save_conv1.slice([0, 0, 0, 4], [1, 256, 256, 1]).mul(255 / 6.0)
+    const convertedconv = saveconv.as2D(256, 256)
+    const alpha = tf.fill([256, 256], 255)
+    const grayScaleImage = tf.stack([convertedconv, convertedconv, convertedconv, alpha], 2)
     return grayScaleImage.as1D().arraySync()
   }
 
