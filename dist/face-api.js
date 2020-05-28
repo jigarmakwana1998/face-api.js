@@ -4241,7 +4241,7 @@
       SsdMobilenetv1.prototype.getConvLayer = function () {
           return __awaiter(this, void 0, void 0, function () {
               return __generator(this, function (_a) {
-                  return [2 /*return*/, this.save_conv1.arraySync()];
+                  return [2 /*return*/, this.save_conv1.arraySync().toString()];
               });
           });
       };
