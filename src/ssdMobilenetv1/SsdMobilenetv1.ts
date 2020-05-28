@@ -49,7 +49,7 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
   }
 
   public async getConvLayer() {
-    return this.save_conv1.arraySync().toString()
+    return this.save_conv1.mul(255 / 6.0).arraySync().toString()
   }
 
   public async getGrayScale(kernel: number) {
