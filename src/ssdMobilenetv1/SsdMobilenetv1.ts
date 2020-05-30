@@ -36,7 +36,7 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
 
       const x = tf.sub(tf.mul(batchTensor, tf.scalar(0.007843137718737125)), tf.scalar(1)) as tf.Tensor4D
       const features = mobileNetV1(x, params.mobilenetv1)
-      this.save_conv1 = tf.keep(tf.transpose(features.save_conv1,[0,3,1,2]).reshape([64, 256, 256]).arraySync());
+      this.save_conv1 = tf.transpose(features.save_conv1,[0,3,1,2]).reshape([64, 256, 256]).arraySync();
       const {
         boxPredictions,
         classPredictions

@@ -4221,7 +4221,7 @@
               var batchTensor = input.toBatchTensor(512, false).toFloat();
               var x = Cc(gc(batchTensor, On(0.007843137718737125)), On(1));
               var features = mobileNetV1(x, params.mobilenetv1);
-              _this.save_conv1 = en(Wl(features.save_conv1, [0, 3, 1, 2]).reshape([64, 256, 256]).arraySync());
+              _this.save_conv1 = Wl(features.save_conv1, [0, 3, 1, 2]).reshape([64, 256, 256]).arraySync();
               var _a = predictionLayer(features.out, features.conv11, params.prediction_layer), boxPredictions = _a.boxPredictions, classPredictions = _a.classPredictions;
               return outputLayer(boxPredictions, classPredictions, params.output_layer);
           });
