@@ -12,6 +12,7 @@ import { outputLayer } from './outputLayer';
 import { predictionLayer } from './predictionLayer';
 import { ISsdMobilenetv1Options, SsdMobilenetv1Options } from './SsdMobilenetv1Options';
 import { NetParams } from './types';
+import { tensor2d } from '@tensorflow/tfjs-core';
 
 
 export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
@@ -30,12 +31,12 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
     }
 
     return tf.tidy(() => {
+      tf.dispose(this.save_conv1)
       const batchTensor = input.toBatchTensor(512, false).toFloat()
 
       const x = tf.sub(tf.mul(batchTensor, tf.scalar(0.007843137718737125)), tf.scalar(1)) as tf.Tensor4D
       const features = mobileNetV1(x, params.mobilenetv1)
-      tf.dispose(this.save_conv1)
-      this.save_conv1 = tf.keep(features.save_conv1)
+      this.save_conv1 = tf.keep(tf.transpose(features.save_conv1,[0,3,1,2]).reshape([64, 256, 256]).arraySync());
       const {
         boxPredictions,
         classPredictions
@@ -50,16 +51,15 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
   }
 
   public async getConvLayer() {
-    return this.save_conv1.mul(255 / 6.0).arraySync().toString()
+    return this.save_conv1.toString()
   }
 
   public async getGrayScale(kernel: number) {
     return tf.tidy(() => {
-      let saveconv = this.save_conv1.slice([0, 0, 0, kernel], [1, 256, 256, 1])
-      saveconv = saveconv.mul(255 / 6.0)
-      const convertedconv = saveconv.as2D(256, 256)
+      let saveconv = this.save_conv1.slice(kernel,kernel+1)[0]
+      // const convertedconv = saveconv[0];
       const alpha = tf.fill([256, 256], 255)
-      const grayScaleImage = tf.stack([convertedconv, convertedconv, convertedconv, alpha], 2)
+      const grayScaleImage = tf.stack([saveconv, saveconv, saveconv, alpha], 2)
       return grayScaleImage.as1D().arraySync()
     })
   }

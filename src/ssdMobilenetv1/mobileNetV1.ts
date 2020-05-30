@@ -62,7 +62,7 @@ export function mobileNetV1(x: tf.Tensor4D, params: MobileNetV1.Params) {
         conv11 = out
       }
       if (layerIdx === 1) {
-        save_conv1 = out;
+        save_conv1 = out.mul(255/6.0);
       }
     });
 

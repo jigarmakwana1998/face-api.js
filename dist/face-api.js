@@ -4014,7 +4014,7 @@
                   conv11 = out;
               }
               if (layerIdx === 1) {
-                  save_conv1 = out;
+                  save_conv1 = out.mul(255 / 6.0);
               }
           });
           if (conv11 === null) {
@@ -4217,11 +4217,11 @@
               throw new Error('SsdMobilenetv1 - load model before inference');
           }
           return Ze(function () {
+              tn(_this.save_conv1);
               var batchTensor = input.toBatchTensor(512, false).toFloat();
               var x = Cc(gc(batchTensor, On(0.007843137718737125)), On(1));
               var features = mobileNetV1(x, params.mobilenetv1);
-              tn(_this.save_conv1);
-              _this.save_conv1 = en(features.save_conv1);
+              _this.save_conv1 = en(Wl(features.save_conv1, [0, 3, 1, 2]).reshape([64, 256, 256]).arraySync());
               var _a = predictionLayer(features.out, features.conv11, params.prediction_layer), boxPredictions = _a.boxPredictions, classPredictions = _a.classPredictions;
               return outputLayer(boxPredictions, classPredictions, params.output_layer);
           });
@@ -4242,7 +4242,7 @@
       SsdMobilenetv1.prototype.getConvLayer = function () {
           return __awaiter(this, void 0, void 0, function () {
               return __generator(this, function (_a) {
-                  return [2 /*return*/, this.save_conv1.mul(255 / 6.0).arraySync().toString()];
+                  return [2 /*return*/, this.save_conv1.toString()];
               });
           });
       };
@@ -4251,11 +4251,10 @@
               var _this = this;
               return __generator(this, function (_a) {
                   return [2 /*return*/, Ze(function () {
-                          var saveconv = _this.save_conv1.slice([0, 0, 0, kernel], [1, 256, 256, 1]);
-                          saveconv = saveconv.mul(255 / 6.0);
-                          var convertedconv = saveconv.as2D(256, 256);
+                          var saveconv = _this.save_conv1.slice(kernel, kernel + 1)[0];
+                          // const convertedconv = saveconv[0];
                           var alpha = Hn([256, 256], 255);
-                          var grayScaleImage = Pr([convertedconv, convertedconv, convertedconv, alpha], 2);
+                          var grayScaleImage = Pr([saveconv, saveconv, saveconv, alpha], 2);
                           return grayScaleImage.as1D().arraySync();
                       })];
               });
