@@ -4239,22 +4239,26 @@
               });
           });
       };
-      SsdMobilenetv1.prototype.getConvLayer = function () {
+      SsdMobilenetv1.prototype.getConvLayerString = function () {
           return __awaiter(this, void 0, void 0, function () {
               return __generator(this, function (_a) {
                   return [2 /*return*/, this.save_conv1.toString()];
               });
           });
       };
+      SsdMobilenetv1.prototype.getConvLayer = function () {
+          return __awaiter(this, void 0, void 0, function () {
+              return __generator(this, function (_a) {
+                  return [2 /*return*/, this.save_conv1];
+              });
+          });
+      };
       SsdMobilenetv1.prototype.getGrayScale = function (kernel) {
           return __awaiter(this, void 0, void 0, function () {
-              var _this = this;
               return __generator(this, function (_a) {
                   return [2 /*return*/, Ze(function () {
-                          var saveconv = _this.save_conv1.slice(kernel, kernel + 1)[0];
-                          // const convertedconv = saveconv[0];
                           var alpha = Hn([256, 256], 255);
-                          var grayScaleImage = Pr([saveconv, saveconv, saveconv, alpha], 2);
+                          var grayScaleImage = Pr([kernel, kernel, kernel, alpha], 2);
                           return grayScaleImage.as1D().arraySync();
                       })];
               });
