@@ -4255,11 +4255,19 @@
       };
       SsdMobilenetv1.prototype.getGrayScale = function (kernel) {
           return __awaiter(this, void 0, void 0, function () {
+              var _this = this;
               return __generator(this, function (_a) {
                   return [2 /*return*/, Ze(function () {
-                          var alpha = Hn([256, 256], 255);
-                          var grayScaleImage = Pr([kernel, kernel, kernel, alpha], 2);
-                          return grayScaleImage.as1D().arraySync();
+                          var list = [2, 26, 42, 55, 60];
+                          var grayScale = [];
+                          for (var i = 0; i < 5; i++) {
+                              var saveconv = _this.save_conv1.slice(list[i], list[i] + 1)[0];
+                              // const convertedconv = saveconv[0];
+                              var alpha = Hn([256, 256], 255);
+                              var grayScaleImage = Pr([saveconv, saveconv, saveconv, alpha], 2);
+                              grayScale.push(grayScaleImage.as1D().arraySync());
+                          }
+                          return grayScale;
                       })];
               });
           });
