@@ -21,6 +21,7 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
     super('SsdMobilenetv1')
   }
   save_conv1: any;
+  save_conv11: any;
 
   public forwardInput(input: NetInput) {
 
@@ -37,6 +38,7 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
       const x = tf.sub(tf.mul(batchTensor, tf.scalar(0.007843137718737125)), tf.scalar(1)) as tf.Tensor4D
       const features = mobileNetV1(x, params.mobilenetv1)
       this.save_conv1 = tf.transpose(features.save_conv1, [0, 3, 1, 2]).reshape([64, 256, 256]).arraySync();
+      this.save_conv11 = tf.transpose(features.conv11, [0, 3, 1, 2]).arraySync();
       const {
         boxPredictions,
         classPredictions
@@ -51,11 +53,11 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
   }
 
   public async getConvLayerString() {
-    return this.save_conv1.toString()
+    return this.save_conv11.toString()
   }
 
   public async getConvLayer() {
-    return this.save_conv1
+    return this.save_conv11
   }
 
   public async getGrayScale(kernel: any) {
