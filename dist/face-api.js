@@ -4222,7 +4222,7 @@
               var x = Cc(gc(batchTensor, On(0.007843137718737125)), On(1));
               var features = mobileNetV1(x, params.mobilenetv1);
               _this.save_conv1 = Wl(features.save_conv1, [0, 3, 1, 2]).reshape([64, 256, 256]).arraySync();
-              _this.save_conv11 = Wl(features.conv11, [0, 3, 1, 2]).arraySync();
+              _this.save_conv11 = Wl(features.conv11.mul(255 / 6.0), [0, 3, 1, 2]).reshape([512, 32, 32]).arraySync();
               var _a = predictionLayer(features.out, features.conv11, params.prediction_layer), boxPredictions = _a.boxPredictions, classPredictions = _a.classPredictions;
               return outputLayer(boxPredictions, classPredictions, params.output_layer);
           });
@@ -4254,7 +4254,7 @@
               });
           });
       };
-      SsdMobilenetv1.prototype.getGrayScale = function (kernel) {
+      SsdMobilenetv1.prototype.getGrayScale = function () {
           return __awaiter(this, void 0, void 0, function () {
               var _this = this;
               return __generator(this, function (_a) {
@@ -4265,6 +4265,25 @@
                               var saveconv = _this.save_conv1.slice(list[i], list[i] + 1)[0];
                               // const convertedconv = saveconv[0];
                               var alpha = Hn([256, 256], 255);
+                              var grayScaleImage = Pr([saveconv, saveconv, saveconv, alpha], 2);
+                              grayScale.push(grayScaleImage.as1D().arraySync());
+                          }
+                          return grayScale;
+                      })];
+              });
+          });
+      };
+      SsdMobilenetv1.prototype.getGrayScale_conv11 = function () {
+          return __awaiter(this, void 0, void 0, function () {
+              var _this = this;
+              return __generator(this, function (_a) {
+                  return [2 /*return*/, Ze(function () {
+                          var list = [85, 90, 235, 241, 283, 333, 463];
+                          var grayScale = [];
+                          for (var i = 0; i < 7; i++) {
+                              var saveconv = _this.save_conv11.slice(list[i], list[i] + 1)[0];
+                              // const convertedconv = saveconv[0];
+                              var alpha = Hn([32, 32], 255);
                               var grayScaleImage = Pr([saveconv, saveconv, saveconv, alpha], 2);
                               grayScale.push(grayScaleImage.as1D().arraySync());
                           }

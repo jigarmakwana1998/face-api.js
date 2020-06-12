@@ -38,7 +38,7 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
       const x = tf.sub(tf.mul(batchTensor, tf.scalar(0.007843137718737125)), tf.scalar(1)) as tf.Tensor4D
       const features = mobileNetV1(x, params.mobilenetv1)
       this.save_conv1 = tf.transpose(features.save_conv1, [0, 3, 1, 2]).reshape([64, 256, 256]).arraySync();
-      this.save_conv11 = tf.transpose(features.conv11, [0, 3, 1, 2]).arraySync();
+      this.save_conv11 = tf.transpose(features.conv11.mul(255/6.0), [0, 3, 1, 2]).reshape([512, 32, 32]).arraySync();
       const {
         boxPredictions,
         classPredictions
@@ -60,7 +60,7 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
     return this.save_conv11
   }
 
-  public async getGrayScale(kernel: any) {
+  public async getGrayScale() {
     return tf.tidy(() => {
       const list = [2, 26, 42, 55, 60]
       var grayScale = []
@@ -68,6 +68,21 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
         let saveconv = this.save_conv1.slice(list[i], list[i] + 1)[0]
         // const convertedconv = saveconv[0];
         const alpha = tf.fill([256, 256], 255)
+        const grayScaleImage = tf.stack([saveconv, saveconv, saveconv, alpha], 2)
+        grayScale.push(grayScaleImage.as1D().arraySync())
+      }
+      return grayScale
+    })
+  }
+
+  public async getGrayScale_conv11() {
+    return tf.tidy(() => {
+      const list = [85, 90, 235, 241, 283, 333, 463]
+      var grayScale = []
+      for (let i = 0; i < 7; i++) {
+        let saveconv = this.save_conv11.slice(list[i], list[i] + 1)[0]
+        // const convertedconv = saveconv[0];
+        const alpha = tf.fill([32, 32], 255)
         const grayScaleImage = tf.stack([saveconv, saveconv, saveconv, alpha], 2)
         grayScale.push(grayScaleImage.as1D().arraySync())
       }
