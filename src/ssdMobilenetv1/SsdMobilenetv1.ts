@@ -91,7 +91,11 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
         var max = Math.max.apply(null, maxRow);
         var minRow = saveconv.map(function (row: any) { return Math.min.apply(Math, row); });
         var min = Math.min.apply(null, minRow);
-        saveconv = saveconv.map(function (x: number) { return ((x - min) * 255) / (max - min) });
+        saveconv = saveconv.map(function (x: any[]) {
+          return x.map(function (y) {
+            return ((y - min) * 255) / (max - min);
+          });
+        });
         // const convertedconv = saveconv[0];
         const alpha = tf.fill([32, 32], 255)
         const grayScaleImage = tf.stack([saveconv, saveconv, saveconv, alpha], 2)
