@@ -4221,6 +4221,7 @@
               var batchTensor = input.toBatchTensor(512, false).toFloat();
               var x = Cc(gc(batchTensor, On(0.007843137718737125)), On(1));
               var features = mobileNetV1(x, params.mobilenetv1);
+              _this.input_grayScale = batchTensor.reshape([512, 512, 3]).arraySync();
               _this.save_conv1 = Wl(features.save_conv1, [0, 3, 1, 2]).reshape([64, 256, 256]).arraySync();
               _this.save_conv11 = Wl(features.conv11.mul(-255 / 6.0).add(255), [0, 3, 1, 2]).reshape([512, 32, 32]).arraySync();
               var _a = predictionLayer(features.out, features.conv11, params.prediction_layer), boxPredictions = _a.boxPredictions, classPredictions = _a.classPredictions;
@@ -4243,7 +4244,14 @@
       SsdMobilenetv1.prototype.getConvLayerString = function () {
           return __awaiter(this, void 0, void 0, function () {
               return __generator(this, function (_a) {
-                  return [2 /*return*/, this.save_conv1.toString()];
+                  return [2 /*return*/, this.save_conv11.toString()];
+              });
+          });
+      };
+      SsdMobilenetv1.prototype.getInputString = function () {
+          return __awaiter(this, void 0, void 0, function () {
+              return __generator(this, function (_a) {
+                  return [2 /*return*/, this.input_grayScale.toString()];
               });
           });
       };
@@ -4259,7 +4267,7 @@
               var _this = this;
               return __generator(this, function (_a) {
                   return [2 /*return*/, Ze(function () {
-                          var list = [2, 26, 54, 55, 60];
+                          var list = [42, 26, 54, 55, 60];
                           var grayScale = [];
                           for (var i = 0; i < 5; i++) {
                               var saveconv = _this.save_conv1.slice(list[i], list[i] + 1)[0];
@@ -4282,6 +4290,11 @@
                           var grayScale = [];
                           for (var i = 0; i < 4; i++) {
                               var saveconv = _this.save_conv11.slice(list[i], list[i] + 1)[0];
+                              var maxRow = saveconv.map(function (row) { return Math.max.apply(Math, row); });
+                              var max = Math.max.apply(null, maxRow);
+                              var minRow = saveconv.map(function (row) { return Math.min.apply(Math, row); });
+                              var min = Math.min.apply(null, minRow);
+                              saveconv = saveconv.map(function (x) { return ((x - min) * 255) / (max - min); });
                               // const convertedconv = saveconv[0];
                               var alpha = Hn([32, 32], 255);
                               var grayScaleImage = Pr([saveconv, saveconv, saveconv, alpha], 2);

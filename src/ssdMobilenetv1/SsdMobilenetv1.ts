@@ -20,6 +20,7 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
   constructor() {
     super('SsdMobilenetv1')
   }
+  input_grayScale: number | number[] | number[][] | number[][][] | number[][][][] | number[][][][][] | number[][][][][][];
   save_conv1: any;
   save_conv11: any;
 
@@ -37,8 +38,9 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
 
       const x = tf.sub(tf.mul(batchTensor, tf.scalar(0.007843137718737125)), tf.scalar(1)) as tf.Tensor4D
       const features = mobileNetV1(x, params.mobilenetv1)
+      this.input_grayScale = batchTensor.reshape([512, 512, 3]).arraySync();
       this.save_conv1 = tf.transpose(features.save_conv1, [0, 3, 1, 2]).reshape([64, 256, 256]).arraySync();
-      this.save_conv11 = tf.transpose(features.conv11.mul(-255/6.0).add(255), [0, 3, 1, 2]).reshape([512, 32, 32]).arraySync();
+      this.save_conv11 = tf.transpose(features.conv11.mul(-255 / 6.0).add(255), [0, 3, 1, 2]).reshape([512, 32, 32]).arraySync();
       const {
         boxPredictions,
         classPredictions
@@ -53,7 +55,11 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
   }
 
   public async getConvLayerString() {
-    return this.save_conv1.toString()
+    return this.save_conv11.toString()
+  }
+
+  public async getInputString() {
+    return this.input_grayScale.toString()
   }
 
   public async getConvLayer() {
@@ -62,7 +68,7 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
 
   public async getGrayScale() {
     return tf.tidy(() => {
-      const list = [2, 26, 54, 55, 60]
+      const list = [42, 26, 54, 55, 60]
       var grayScale = []
       for (let i = 0; i < 5; i++) {
         let saveconv = this.save_conv1.slice(list[i], list[i] + 1)[0]
@@ -80,7 +86,12 @@ export class SsdMobilenetv1 extends NeuralNetwork<NetParams> {
       const list = [85, 90, 333, 463]
       var grayScale = []
       for (let i = 0; i < 4; i++) {
-        let saveconv = this.save_conv11.slice(list[i], list[i] + 1)[0]
+        let saveconv = this.save_conv11.slice(list[i], list[i] + 1)[0];
+        var maxRow = saveconv.map(function (row: any) { return Math.max.apply(Math, row); });
+        var max = Math.max.apply(null, maxRow);
+        var minRow = saveconv.map(function (row: any) { return Math.min.apply(Math, row); });
+        var min = Math.min.apply(null, minRow);
+        saveconv = saveconv.map(function (x: number) { return ((x - min) * 255) / (max - min) });
         // const convertedconv = saveconv[0];
         const alpha = tf.fill([32, 32], 255)
         const grayScaleImage = tf.stack([saveconv, saveconv, saveconv, alpha], 2)
