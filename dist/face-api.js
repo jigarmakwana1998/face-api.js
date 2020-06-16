@@ -4217,7 +4217,6 @@
               throw new Error('SsdMobilenetv1 - load model before inference');
           }
           return Ze(function () {
-              tn(_this.save_conv1);
               var batchTensor = input.toBatchTensor(512, false).toFloat();
               var x = Cc(gc(batchTensor, On(0.007843137718737125)), On(1));
               var features = mobileNetV1(x, params.mobilenetv1);
@@ -4645,6 +4644,7 @@
       });
       TinyYolov2Base.prototype.runTinyYolov2 = function (x, params) {
           var out = convWithBatchNorm(x, params.conv0);
+          var get_conv1 = out;
           out = hl(out, [2, 2], [2, 2], 'same');
           out = convWithBatchNorm(out, params.conv1);
           out = hl(out, [2, 2], [2, 2], 'same');
@@ -4658,12 +4658,19 @@
           out = hl(out, [2, 2], [1, 1], 'same');
           out = convWithBatchNorm(out, params.conv6);
           out = convWithBatchNorm(out, params.conv7);
-          return convLayer(out, params.conv8, 'valid', false);
+          out = convLayer(out, params.conv8, 'valid', false);
+          var get_conv11 = out;
+          return {
+              out: out,
+              save_conv1: get_conv1,
+              save_conv11: get_conv11
+          };
       };
       TinyYolov2Base.prototype.runMobilenet = function (x, params) {
           var out = this.config.isFirstLayerConv2d
               ? leaky(convLayer(x, params.conv0, 'valid', false))
               : depthwiseSeparableConv$1(x, params.conv0);
+          var get_conv1 = out;
           out = hl(out, [2, 2], [2, 2], 'same');
           out = depthwiseSeparableConv$1(out, params.conv1);
           out = hl(out, [2, 2], [2, 2], 'same');
@@ -4677,7 +4684,13 @@
           out = hl(out, [2, 2], [1, 1], 'same');
           out = params.conv6 ? depthwiseSeparableConv$1(out, params.conv6) : out;
           out = params.conv7 ? depthwiseSeparableConv$1(out, params.conv7) : out;
-          return convLayer(out, params.conv8, 'valid', false);
+          out = convLayer(out, params.conv8, 'valid', false);
+          var get_conv11 = out;
+          return {
+              out: out,
+              save_conv1: get_conv1,
+              save_conv11: get_conv11
+          };
       };
       TinyYolov2Base.prototype.forwardInput = function (input, inputSize) {
           var _this = this;
@@ -4691,9 +4704,12 @@
                   ? normalize(batchTensor, _this.config.meanRgb)
                   : batchTensor;
               batchTensor = batchTensor.div(On(256));
-              return _this.config.withSeparableConvs
+              var features = _this.config.withSeparableConvs
                   ? _this.runMobilenet(batchTensor, params)
                   : _this.runTinyYolov2(batchTensor, params);
+              _this.save_conv1 = Wl(features.save_conv1, [0, 3, 1, 2]).reshape([16, 414, 414]).arraySync();
+              _this.save_conv11 = Wl(features.save_conv11, [0, 3, 1, 2]).reshape([25, 13, 13]).arraySync();
+              return features.out;
           });
       };
       TinyYolov2Base.prototype.forward = function (input, inputSize) {
@@ -4707,6 +4723,42 @@
                       case 1: return [4 /*yield*/, _a.apply(this, [_b.sent(), inputSize])];
                       case 2: return [2 /*return*/, _b.sent()];
                   }
+              });
+          });
+      };
+      TinyYolov2Base.prototype.getConv1 = function () {
+          return __awaiter(this, void 0, void 0, function () {
+              return __generator(this, function (_a) {
+                  return [2 /*return*/, this.save_conv1];
+              });
+          });
+      };
+      TinyYolov2Base.prototype.getConv11 = function () {
+          return __awaiter(this, void 0, void 0, function () {
+              return __generator(this, function (_a) {
+                  return [2 /*return*/, this.save_conv11];
+              });
+          });
+      };
+      TinyYolov2Base.prototype.getConvLayerString = function () {
+          return __awaiter(this, void 0, void 0, function () {
+              return __generator(this, function (_a) {
+                  return [2 /*return*/, this.save_conv1.toString()];
+              });
+          });
+      };
+      TinyYolov2Base.prototype.getGrayScale = function () {
+          return __awaiter(this, void 0, void 0, function () {
+              var _this = this;
+              return __generator(this, function (_a) {
+                  return [2 /*return*/, Ze(function () {
+                          var saveconv = _this.save_conv1.slice(4, 4 + 1)[0];
+                          console.log(saveconv);
+                          // const convertedconv = saveconv[0];
+                          var alpha = Hn([414, 414], 255);
+                          var grayScaleImage = Pr([saveconv, saveconv, saveconv, alpha], 2);
+                          return grayScaleImage.as1D().arraySync();
+                      })];
               });
           });
       };
@@ -4770,9 +4822,9 @@
                   switch (_d.label) {
                       case 0:
                           width = inputBlobDimensions.width, height = inputBlobDimensions.height;
-                          inputSize = Math.max(width, height);
-                          correctionFactorX = inputSize / width;
-                          correctionFactorY = inputSize / height;
+                          inputSize = Math.min(width, height);
+                          correctionFactorX = inputSize / inputSize;
+                          correctionFactorY = inputSize / inputSize;
                           numCells = outputTensor.shape[1];
                           numBoxes = this.config.anchors.length;
                           _a = Ze(function () {
