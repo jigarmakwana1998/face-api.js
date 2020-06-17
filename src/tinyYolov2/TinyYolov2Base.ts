@@ -54,14 +54,15 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
   public runTinyYolov2(x: tf.Tensor4D, params: DefaultTinyYolov2NetParams) {
 
     let out = convWithBatchNorm(x, params.conv0)
-    let get_conv1 = out
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
+    let get_conv1 = out
     out = convWithBatchNorm(out, params.conv1)
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
     out = convWithBatchNorm(out, params.conv2)
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
     out = convWithBatchNorm(out, params.conv3)
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
+    let get_conv11 = out
     out = convWithBatchNorm(out, params.conv4)
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
     out = convWithBatchNorm(out, params.conv5)
@@ -69,7 +70,6 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     out = convWithBatchNorm(out, params.conv6)
     out = convWithBatchNorm(out, params.conv7)
     out = convLayer(out, params.conv8, 'valid', false)
-    let get_conv11 = out
     return {
       out,
       save_conv1: get_conv1,
@@ -81,14 +81,15 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     let out = this.config.isFirstLayerConv2d
       ? leaky(convLayer(x, params.conv0 as ConvParams, 'valid', false))
       : depthwiseSeparableConv(x, params.conv0 as SeparableConvParams)
-    let get_conv1 = out
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
+    let get_conv1 = out
     out = depthwiseSeparableConv(out, params.conv1)
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
     out = depthwiseSeparableConv(out, params.conv2)
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
     out = depthwiseSeparableConv(out, params.conv3)
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
+    let get_conv11 = out
     out = depthwiseSeparableConv(out, params.conv4)
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
     out = depthwiseSeparableConv(out, params.conv5)
@@ -96,8 +97,6 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     out = params.conv6 ? depthwiseSeparableConv(out, params.conv6) : out
     out = params.conv7 ? depthwiseSeparableConv(out, params.conv7) : out
     out = convLayer(out, params.conv8, 'valid', false)
-    let get_conv11 = out
-
     return {
       out,
       save_conv1: get_conv1,
@@ -124,8 +123,8 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
       const features = this.config.withSeparableConvs
         ? this.runMobilenet(batchTensor, params as MobilenetParams)
         : this.runTinyYolov2(batchTensor, params as DefaultTinyYolov2NetParams)
-      this.save_conv1 = tf.transpose(features.save_conv1, [0, 3, 1, 2]).reshape([16, 414, 414]).arraySync();
-      this.save_conv11 = tf.transpose(features.save_conv11, [0, 3, 1, 2]).reshape([25, 13, 13]).arraySync();
+      this.save_conv1 = tf.transpose(features.save_conv1.sub(features.save_conv1.min()).div(features.save_conv1.max().sub(features.save_conv1.min())).mul(255.0), [0, 3, 1, 2]).reshape([16, 255, 255]).arraySync();
+      this.save_conv11 = tf.transpose(features.save_conv11.sub(features.save_conv11.min()).div(features.save_conv11.max().sub(features.save_conv11.min())).mul(255.0), [0, 3, 1, 2]).reshape([128, 32, 32]).arraySync();
       return features.out
     })
   }
@@ -148,12 +147,31 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
 
   public async getGrayScale() {
     return tf.tidy(() => {
-        let saveconv = this.save_conv1.slice(4, 4 + 1)[0]
-        console.log(saveconv)
+      const list = [2, 8, 11]
+      var grayScale = []
+      for (let i = 0; i < 3; i++) {
+        let saveconv = this.save_conv1.slice(list[i], list[i] + 1)[0]
         // const convertedconv = saveconv[0];
-        const alpha = tf.fill([414, 414], 255)
+        const alpha = tf.fill([255, 255], 255)
         const grayScaleImage = tf.stack([saveconv, saveconv, saveconv, alpha], 2)
-      return grayScaleImage.as1D().arraySync()
+        grayScale.push(grayScaleImage.as1D().arraySync())
+      }
+      return grayScale
+    })
+  }
+
+  public async getGrayScale_conv11() {
+    return tf.tidy(() => {
+      const list = [2, 8, 11, 13]
+      var grayScale = []
+      for (let i = 0; i < 4; i++) {
+        let saveconv = this.save_conv11.slice(list[i], list[i] + 1)[0]
+        // const convertedconv = saveconv[0];
+        const alpha = tf.fill([32, 32], 255)
+        const grayScaleImage = tf.stack([saveconv, saveconv, saveconv, alpha], 2)
+        grayScale.push(grayScaleImage.as1D().arraySync())
+      }
+      return grayScale
     })
   }
 
