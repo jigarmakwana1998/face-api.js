@@ -4707,8 +4707,8 @@
               var features = _this.config.withSeparableConvs
                   ? _this.runMobilenet(batchTensor, params)
                   : _this.runTinyYolov2(batchTensor, params);
-              _this.save_conv1 = Wl(features.save_conv1.sub(features.save_conv1.min()).div(features.save_conv1.max().sub(features.save_conv1.min())).mul(255.0), [0, 3, 1, 2]).reshape([16, 255, 255]).arraySync();
-              _this.save_conv11 = Wl(features.save_conv11.sub(features.save_conv11.min()).div(features.save_conv11.max().sub(features.save_conv11.min())).mul(255.0), [0, 3, 1, 2]).reshape([128, 32, 32]).arraySync();
+              _this.save_conv1 = Wl(features.save_conv1.sub(features.save_conv1.min()).div(features.save_conv1.max().sub(features.save_conv1.min())).mul(255.0), [0, 3, 1, 2]).reshape([16, 111, 111]).arraySync();
+              _this.save_conv11 = Wl(features.save_conv11.sub(features.save_conv11.min()).div(features.save_conv11.max().sub(features.save_conv11.min())).mul(255.0), [0, 3, 1, 2]).reshape([128, 14, 14]).arraySync();
               return features.out;
           });
       };
@@ -4757,7 +4757,7 @@
                           for (var i = 0; i < 3; i++) {
                               var saveconv = _this.save_conv1.slice(list[i], list[i] + 1)[0];
                               // const convertedconv = saveconv[0];
-                              var alpha = Hn([255, 255], 255);
+                              var alpha = Hn([111, 111], 255);
                               var grayScaleImage = Pr([saveconv, saveconv, saveconv, alpha], 2);
                               grayScale.push(grayScaleImage.as1D().arraySync());
                           }
@@ -4775,8 +4775,17 @@
                           var grayScale = [];
                           for (var i = 0; i < 4; i++) {
                               var saveconv = _this.save_conv11.slice(list[i], list[i] + 1)[0];
+                              var maxRow = saveconv.map(function (row) { return Math.max.apply(Math, row); });
+                              var max = Math.max.apply(null, maxRow);
+                              var minRow = saveconv.map(function (row) { return Math.min.apply(Math, row); });
+                              var min = Math.min.apply(null, minRow);
+                              saveconv = saveconv.map(function (x) {
+                                  return x.map(function (y) {
+                                      return ((y - min) * 255) / (max - min);
+                                  });
+                              });
                               // const convertedconv = saveconv[0];
-                              var alpha = Hn([32, 32], 255);
+                              var alpha = Hn([14, 14], 255);
                               var grayScaleImage = Pr([saveconv, saveconv, saveconv, alpha], 2);
                               grayScale.push(grayScaleImage.as1D().arraySync());
                           }

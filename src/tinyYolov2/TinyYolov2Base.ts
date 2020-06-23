@@ -123,8 +123,8 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
       const features = this.config.withSeparableConvs
         ? this.runMobilenet(batchTensor, params as MobilenetParams)
         : this.runTinyYolov2(batchTensor, params as DefaultTinyYolov2NetParams)
-      this.save_conv1 = tf.transpose(features.save_conv1.sub(features.save_conv1.min()).div(features.save_conv1.max().sub(features.save_conv1.min())).mul(255.0), [0, 3, 1, 2]).reshape([16, 255, 255]).arraySync();
-      this.save_conv11 = tf.transpose(features.save_conv11.sub(features.save_conv11.min()).div(features.save_conv11.max().sub(features.save_conv11.min())).mul(255.0), [0, 3, 1, 2]).reshape([128, 32, 32]).arraySync();
+      this.save_conv1 = tf.transpose(features.save_conv1.sub(features.save_conv1.min()).div(features.save_conv1.max().sub(features.save_conv1.min())).mul(255.0), [0, 3, 1, 2]).reshape([16, 111, 111]).arraySync();
+      this.save_conv11 = tf.transpose(features.save_conv11.sub(features.save_conv11.min()).div(features.save_conv11.max().sub(features.save_conv11.min())).mul(255.0), [0, 3, 1, 2]).reshape([128, 14, 14]).arraySync();
       return features.out
     })
   }
@@ -152,7 +152,7 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
       for (let i = 0; i < 3; i++) {
         let saveconv = this.save_conv1.slice(list[i], list[i] + 1)[0]
         // const convertedconv = saveconv[0];
-        const alpha = tf.fill([255, 255], 255)
+        const alpha = tf.fill([111, 111], 255)
         const grayScaleImage = tf.stack([saveconv, saveconv, saveconv, alpha], 2)
         grayScale.push(grayScaleImage.as1D().arraySync())
       }
@@ -166,8 +166,17 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
       var grayScale = []
       for (let i = 0; i < 4; i++) {
         let saveconv = this.save_conv11.slice(list[i], list[i] + 1)[0]
+        var maxRow = saveconv.map(function (row: any) { return Math.max.apply(Math, row); });
+        var max = Math.max.apply(null, maxRow);
+        var minRow = saveconv.map(function (row: any) { return Math.min.apply(Math, row); });
+        var min = Math.min.apply(null, minRow);
+        saveconv = saveconv.map(function (x: any[]) {
+          return x.map(function (y) {
+            return ((y - min) * 255) / (max - min);
+          });
+        });
         // const convertedconv = saveconv[0];
-        const alpha = tf.fill([32, 32], 255)
+        const alpha = tf.fill([14, 14], 255)
         const grayScaleImage = tf.stack([saveconv, saveconv, saveconv, alpha], 2)
         grayScale.push(grayScaleImage.as1D().arraySync())
       }
