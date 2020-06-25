@@ -29,7 +29,8 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
   ]
 
   save_conv1: any;
-  save_conv11: any;
+  save_conv4: any;
+  save_conv7: any;
 
   private _config: TinyYolov2Config
 
@@ -62,7 +63,7 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
     out = convWithBatchNorm(out, params.conv3)
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
-    let get_conv11 = out
+    let get_conv4 = out
     out = convWithBatchNorm(out, params.conv4)
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
     out = convWithBatchNorm(out, params.conv5)
@@ -70,10 +71,12 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     out = convWithBatchNorm(out, params.conv6)
     out = convWithBatchNorm(out, params.conv7)
     out = convLayer(out, params.conv8, 'valid', false)
+    let get_conv7 = out
     return {
       out,
       save_conv1: get_conv1,
-      save_conv11: get_conv11
+      save_conv4: get_conv4,
+      save_conv7: get_conv7
     };
   }
 
@@ -89,7 +92,7 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
     out = depthwiseSeparableConv(out, params.conv3)
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
-    let get_conv11 = out
+    let get_conv4 = out
     out = depthwiseSeparableConv(out, params.conv4)
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
     out = depthwiseSeparableConv(out, params.conv5)
@@ -97,10 +100,12 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     out = params.conv6 ? depthwiseSeparableConv(out, params.conv6) : out
     out = params.conv7 ? depthwiseSeparableConv(out, params.conv7) : out
     out = convLayer(out, params.conv8, 'valid', false)
+    let get_conv7 = out
     return {
       out,
       save_conv1: get_conv1,
-      save_conv11: get_conv11
+      save_conv4: get_conv4,
+      save_conv7: get_conv7
     };
   }
 
@@ -124,7 +129,8 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
         ? this.runMobilenet(batchTensor, params as MobilenetParams)
         : this.runTinyYolov2(batchTensor, params as DefaultTinyYolov2NetParams)
       this.save_conv1 = tf.transpose(features.save_conv1.sub(features.save_conv1.min()).div(features.save_conv1.max().sub(features.save_conv1.min())).mul(255.0), [0, 3, 1, 2]).reshape([16, 111, 111]).arraySync();
-      this.save_conv11 = tf.transpose(features.save_conv11.sub(features.save_conv11.min()).div(features.save_conv11.max().sub(features.save_conv11.min())).mul(255.0), [0, 3, 1, 2]).reshape([128, 14, 14]).arraySync();
+      this.save_conv4 = tf.transpose(features.save_conv4.sub(features.save_conv4.min()).div(features.save_conv4.max().sub(features.save_conv4.min())).mul(255.0), [0, 3, 1, 2]).reshape([128, 14, 14]).arraySync();
+      this.save_conv7 = tf.transpose(features.save_conv7.sub(features.save_conv7.min()).div(features.save_conv7.max().sub(features.save_conv7.min())).mul(255.0), [0, 3, 1, 2]).arraySync();
       return features.out
     })
   }
@@ -137,12 +143,16 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     return this.save_conv1
   }
 
-  public async getConv11() {
-    return this.save_conv11
+  public async getConv4() {
+    return this.save_conv4
+  }
+
+  public async getConv7() {
+    return this.save_conv7
   }
 
   public async getConvLayerString() {
-    return this.save_conv1.toString()
+    return this.save_conv7.toString()
   }
 
   public async getGrayScale() {
@@ -160,12 +170,12 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     })
   }
 
-  public async getGrayScale_conv11() {
+  public async getGrayScale_conv4() {
     return tf.tidy(() => {
       const list = [2, 8, 11, 13]
       var grayScale = []
       for (let i = 0; i < 4; i++) {
-        let saveconv = this.save_conv11.slice(list[i], list[i] + 1)[0]
+        let saveconv = this.save_conv4.slice(list[i], list[i] + 1)[0]
         var maxRow = saveconv.map(function (row: any) { return Math.max.apply(Math, row); });
         var max = Math.max.apply(null, maxRow);
         var minRow = saveconv.map(function (row: any) { return Math.min.apply(Math, row); });
