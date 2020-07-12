@@ -4713,7 +4713,7 @@
                   : _this.runTinyYolov2(batchTensor, params);
               _this.save_conv1 = Wl(features.save_conv1.sub(features.save_conv1.min()).div(features.save_conv1.max().sub(features.save_conv1.min())).mul(255.0), [0, 3, 1, 2]).reshape([16, 111, 111]).arraySync();
               _this.save_conv4 = Wl(features.save_conv4.sub(features.save_conv4.min()).div(features.save_conv4.max().sub(features.save_conv4.min())).mul(255.0), [0, 3, 1, 2]).reshape([128, 14, 14]).arraySync();
-              _this.save_conv7 = Wl(features.save_conv7.sub(features.save_conv7.min()).div(features.save_conv7.max().sub(features.save_conv7.min())).mul(255.0), [0, 3, 1, 2]).reshape([1024, 4, 4]).arraySync();
+              _this.save_conv7 = Wl(features.save_conv7.sub(features.save_conv7.min()).div(features.save_conv7.max().sub(features.save_conv7.min())).mul(255.0), [0, 3, 1, 2]).arraySync();
               return features.out;
           });
       };
@@ -4768,7 +4768,15 @@
                           var grayScale = [];
                           for (var i = 0; i < 3; i++) {
                               var saveconv = _this.save_conv1.slice(list[i], list[i] + 1)[0];
-                              // const convertedconv = saveconv[0];
+                              var maxRow = saveconv.map(function (row) { return Math.max.apply(Math, row); });
+                              var max = Math.max.apply(null, maxRow);
+                              var minRow = saveconv.map(function (row) { return Math.min.apply(Math, row); });
+                              var min = Math.min.apply(null, minRow);
+                              saveconv = saveconv.map(function (x) {
+                                  return x.map(function (y) {
+                                      return ((y - min) * 255) / (max - min);
+                                  });
+                              });
                               var alpha = Hn([111, 111], 255);
                               var grayScaleImage = Pr([saveconv, saveconv, saveconv, alpha], 2);
                               grayScale.push(grayScaleImage.as1D().arraySync());

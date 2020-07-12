@@ -161,7 +161,15 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
       var grayScale = []
       for (let i = 0; i < 3; i++) {
         let saveconv = this.save_conv1.slice(list[i], list[i] + 1)[0]
-        // const convertedconv = saveconv[0];
+        var maxRow = saveconv.map(function (row: any) { return Math.max.apply(Math, row); });
+        var max = Math.max.apply(null, maxRow);
+        var minRow = saveconv.map(function (row: any) { return Math.min.apply(Math, row); });
+        var min = Math.min.apply(null, minRow);
+        saveconv = saveconv.map(function (x: any[]) {
+          return x.map(function (y) {
+            return ((y - min) * 255) / (max - min);
+          });
+        });
         const alpha = tf.fill([111, 111], 255)
         const grayScaleImage = tf.stack([saveconv, saveconv, saveconv, alpha], 2)
         grayScale.push(grayScaleImage.as1D().arraySync())
