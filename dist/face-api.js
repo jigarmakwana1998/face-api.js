@@ -4665,7 +4665,9 @@
               out: out,
               save_conv1: get_conv1,
               save_conv4: get_conv4,
-              save_conv7: get_conv7
+              save_conv7: get_conv7,
+              param0: params.conv0.conv.filters,
+              param3: params.conv3.conv.filters
           };
       };
       TinyYolov2Base.prototype.runMobilenet = function (x, params) {
@@ -4689,11 +4691,14 @@
           out = params.conv7 ? depthwiseSeparableConv$1(out, params.conv7) : out;
           out = convLayer(out, params.conv8, 'valid', false);
           var get_conv7 = out;
+          var param = params.conv0;
           return {
               out: out,
               save_conv1: get_conv1,
               save_conv4: get_conv4,
-              save_conv7: get_conv7
+              save_conv7: get_conv7,
+              param0: param.filters,
+              param3: params.conv3.depthwise_filter
           };
       };
       TinyYolov2Base.prototype.forwardInput = function (input, inputSize) {
@@ -4714,6 +4719,8 @@
               _this.save_conv1 = Wl(features.save_conv1.sub(features.save_conv1.min()).div(features.save_conv1.max().sub(features.save_conv1.min())).mul(255.0), [0, 3, 1, 2]).reshape([16, 111, 111]).arraySync();
               _this.save_conv4 = Wl(features.save_conv4.sub(features.save_conv4.min()).div(features.save_conv4.max().sub(features.save_conv4.min())).mul(255.0), [0, 3, 1, 2]).reshape([128, 14, 14]).arraySync();
               _this.save_conv7 = Wl(features.save_conv7.sub(features.save_conv7.min()).div(features.save_conv7.max().sub(features.save_conv7.min())).mul(255.0), [0, 3, 1, 2]).arraySync();
+              _this.param0 = Wl(features.param0, [3, 2, 0, 1]).arraySync();
+              _this.param3 = Wl(features.param3, [3, 2, 0, 1]).arraySync();
               return features.out;
           });
       };
@@ -4752,10 +4759,72 @@
               });
           });
       };
+      TinyYolov2Base.prototype.getParam0 = function () {
+          return __awaiter(this, void 0, void 0, function () {
+              return __generator(this, function (_a) {
+                  return [2 /*return*/, this.param0];
+              });
+          });
+      };
+      TinyYolov2Base.prototype.getParam3 = function () {
+          return __awaiter(this, void 0, void 0, function () {
+              return __generator(this, function (_a) {
+                  return [2 /*return*/, this.param3];
+              });
+          });
+      };
       TinyYolov2Base.prototype.getConvLayerString = function () {
           return __awaiter(this, void 0, void 0, function () {
               return __generator(this, function (_a) {
                   return [2 /*return*/, this.save_conv7.toString()];
+              });
+          });
+      };
+      TinyYolov2Base.prototype.getKernel_0 = function () {
+          return __awaiter(this, void 0, void 0, function () {
+              var _this = this;
+              return __generator(this, function (_a) {
+                  return [2 /*return*/, Ze(function () {
+                          var list = [2, 8, 11];
+                          var grayScale = [];
+                          for (var i = 0; i < 3; i++) {
+                              for (var j = 0; j < 3; j++) {
+                                  var saveconv = _this.param0.slice(list[i], list[i] + 1)[0][j];
+                                  var maxRow = saveconv.map(function (row) { return Math.max.apply(Math, row); });
+                                  var max = Math.max.apply(null, maxRow);
+                                  var minRow = saveconv.map(function (row) { return Math.min.apply(Math, row); });
+                                  var min = Math.min.apply(null, minRow);
+                                  saveconv = saveconv.map(function (x) {
+                                      return x.map(function (y) {
+                                          return ((((y - min) * 2) / (max - min)) - 1) * 255;
+                                      });
+                                  });
+                                  var one_minus_saveconv = saveconv.map(function (x) {
+                                      return x.map(function (y) {
+                                          return Math.max(0, -y);
+                                      });
+                                  });
+                                  saveconv = saveconv.map(function (x) {
+                                      return x.map(function (y) {
+                                          return Math.max(0, y);
+                                      });
+                                  });
+                                  var alpha = Hn([3, 3], 255);
+                                  var grayScaleImage;
+                                  if (j == 0) {
+                                      grayScaleImage = Pr([saveconv, one_minus_saveconv, one_minus_saveconv, alpha], 2);
+                                  }
+                                  else if (j == 1) {
+                                      grayScaleImage = Pr([one_minus_saveconv, saveconv, one_minus_saveconv, alpha], 2);
+                                  }
+                                  else {
+                                      grayScaleImage = Pr([one_minus_saveconv, one_minus_saveconv, saveconv, alpha], 2);
+                                  }
+                                  grayScale.push(grayScaleImage.as1D().arraySync());
+                              }
+                          }
+                          return grayScale;
+                      })];
               });
           });
       };
