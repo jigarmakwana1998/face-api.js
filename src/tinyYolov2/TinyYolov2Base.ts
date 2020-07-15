@@ -241,7 +241,7 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
 
   public async getGrayScale_conv4() {
     return tf.tidy(() => {
-      const list = [2, 8, 11, 13]
+      const list = [26, 36, 46, 112]
       var grayScale = []
       for (let i = 0; i < 4; i++) {
         let saveconv = this.save_conv4.slice(list[i], list[i] + 1)[0]
