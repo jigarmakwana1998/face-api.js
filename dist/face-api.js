@@ -4780,12 +4780,12 @@
               });
           });
       };
-      TinyYolov2Base.prototype.getKernel_0 = function () {
+      TinyYolov2Base.prototype.getKernel_0 = function (list) {
           return __awaiter(this, void 0, void 0, function () {
               var _this = this;
               return __generator(this, function (_a) {
                   return [2 /*return*/, Ze(function () {
-                          var list = [2, 8, 11];
+                          // const list = [2, 8, 11]
                           var grayScale = [];
                           for (var i = 0; i < 3; i++) {
                               for (var j = 0; j < 3; j++) {
@@ -4828,12 +4828,12 @@
               });
           });
       };
-      TinyYolov2Base.prototype.getGrayScale = function () {
+      TinyYolov2Base.prototype.getGrayScale = function (list) {
           return __awaiter(this, void 0, void 0, function () {
               var _this = this;
               return __generator(this, function (_a) {
                   return [2 /*return*/, Ze(function () {
-                          var list = [2, 8, 11];
+                          // const list = [2, 8, 11]
                           var grayScale = [];
                           for (var i = 0; i < 3; i++) {
                               var saveconv = _this.save_conv1.slice(list[i], list[i] + 1)[0];

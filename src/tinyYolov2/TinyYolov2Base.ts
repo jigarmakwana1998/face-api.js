@@ -172,9 +172,9 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     return this.save_conv7.toString()
   }
 
-  public async getKernel_0() {
+  public async getKernel_0(list: number[]) {
     return tf.tidy(() => {
-      const list = [2, 8, 11]
+      // const list = [2, 8, 11]
       var grayScale = []
       for (let i = 0; i < 3; i++) {
         for (var j = 0; j < 3; j++) {
@@ -216,9 +216,9 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     })
   }
 
-  public async getGrayScale() {
+  public async getGrayScale( list: number[]) {
     return tf.tidy(() => {
-      const list = [2, 8, 11]
+      // const list = [2, 8, 11]
       var grayScale = []
       for (let i = 0; i < 3; i++) {
         let saveconv = this.save_conv1.slice(list[i], list[i] + 1)[0]
