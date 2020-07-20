@@ -4716,9 +4716,23 @@
               var features = _this.config.withSeparableConvs
                   ? _this.runMobilenet(batchTensor, params)
                   : _this.runTinyYolov2(batchTensor, params);
-              _this.save_conv1 = Wl(features.save_conv1.sub(features.save_conv1.min()).div(features.save_conv1.max().sub(features.save_conv1.min())).mul(255.0), [0, 3, 1, 2]).reshape([16, 111, 111]).arraySync();
-              _this.save_conv4 = Wl(features.save_conv4.sub(features.save_conv4.min()).div(features.save_conv4.max().sub(features.save_conv4.min())).mul(255.0), [0, 3, 1, 2]).reshape([128, 14, 14]).arraySync();
-              _this.save_conv7 = Wl(features.save_conv7.sub(features.save_conv7.min()).div(features.save_conv7.max().sub(features.save_conv7.min())).mul(255.0), [0, 3, 1, 2]).arraySync();
+              _this.save_conv1 = Wl(features.save_conv1
+                  .sub(features.save_conv1.min())
+                  .div(features.save_conv1.max().sub(features.save_conv1.min()))
+                  .mul(255.0), [0, 3, 1, 2])
+                  .reshape([16, 111, 111])
+                  .arraySync();
+              _this.save_conv4 = Wl(features.save_conv4
+                  .sub(features.save_conv4.min())
+                  .div(features.save_conv4.max().sub(features.save_conv4.min()))
+                  .mul(255.0), [0, 3, 1, 2])
+                  .reshape([128, 14, 14])
+                  .arraySync();
+              _this.save_conv7 = Wl(features.save_conv7
+                  .sub(features.save_conv7.min())
+                  .div(features.save_conv7.max().sub(features.save_conv7.min()))
+                  .mul(255.0), [0, 3, 1, 2])
+                  .arraySync();
               _this.param0 = Wl(features.param0, [3, 2, 0, 1]).arraySync();
               _this.param3 = Wl(features.param3, [3, 2, 0, 1]).arraySync();
               return features.out;
@@ -4788,15 +4802,33 @@
                           // const list = [2, 8, 11]
                           var grayScale = [];
                           for (var i = 0; i < 3; i++) {
+                              var saveconv = _this.param0.slice(list[i], list[i] + 1)[0];
+                              var maxRow = saveconv[0].map(function (row) {
+                                  return Math.max.apply(Math, row);
+                              });
+                              maxRow = maxRow.concat(saveconv[1].map(function (row) {
+                                  return Math.max.apply(Math, row);
+                              }));
+                              maxRow = maxRow.concat(saveconv[2].map(function (row) {
+                                  return Math.max.apply(Math, row);
+                              }));
+                              var max = Math.max.apply(null, maxRow);
+                              var minRow = saveconv[0].map(function (row) {
+                                  return Math.min.apply(Math, row);
+                              });
+                              minRow = minRow.concat(saveconv[1].map(function (row) {
+                                  return Math.min.apply(Math, row);
+                              }));
+                              minRow = minRow.concat(saveconv[2].map(function (row) {
+                                  return Math.min.apply(Math, row);
+                              }));
+                              var min = Math.min.apply(null, minRow);
                               for (var j = 0; j < 3; j++) {
                                   var saveconv = _this.param0.slice(list[i], list[i] + 1)[0][j];
-                                  var maxRow = saveconv.map(function (row) { return Math.max.apply(Math, row); });
-                                  var max = Math.max.apply(null, maxRow);
-                                  var minRow = saveconv.map(function (row) { return Math.min.apply(Math, row); });
                                   var min = Math.min.apply(null, minRow);
                                   saveconv = saveconv.map(function (x) {
                                       return x.map(function (y) {
-                                          return ((((y - min) * 2) / (max - min)) - 1) * 255;
+                                          return (((y - min) * 2) / (max - min) - 1) * 255;
                                       });
                                   });
                                   var one_minus_saveconv = saveconv.map(function (x) {
@@ -4837,9 +4869,13 @@
                           var grayScale = [];
                           for (var i = 0; i < 3; i++) {
                               var saveconv = _this.save_conv1.slice(list[i], list[i] + 1)[0];
-                              var maxRow = saveconv.map(function (row) { return Math.max.apply(Math, row); });
+                              var maxRow = saveconv.map(function (row) {
+                                  return Math.max.apply(Math, row);
+                              });
                               var max = Math.max.apply(null, maxRow);
-                              var minRow = saveconv.map(function (row) { return Math.min.apply(Math, row); });
+                              var minRow = saveconv.map(function (row) {
+                                  return Math.min.apply(Math, row);
+                              });
                               var min = Math.min.apply(null, minRow);
                               saveconv = saveconv.map(function (x) {
                                   return x.map(function (y) {
@@ -4864,9 +4900,13 @@
                           var grayScale = [];
                           for (var i = 0; i < 4; i++) {
                               var saveconv = _this.save_conv4.slice(list[i], list[i] + 1)[0];
-                              var maxRow = saveconv.map(function (row) { return Math.max.apply(Math, row); });
+                              var maxRow = saveconv.map(function (row) {
+                                  return Math.max.apply(Math, row);
+                              });
                               var max = Math.max.apply(null, maxRow);
-                              var minRow = saveconv.map(function (row) { return Math.min.apply(Math, row); });
+                              var minRow = saveconv.map(function (row) {
+                                  return Math.min.apply(Math, row);
+                              });
                               var min = Math.min.apply(null, minRow);
                               saveconv = saveconv.map(function (x) {
                                   return x.map(function (y) {
@@ -4949,7 +4989,12 @@
                           numCells = outputTensor.shape[1];
                           numBoxes = this.config.anchors.length;
                           _a = Ze(function () {
-                              var reshaped = outputTensor.reshape([numCells, numCells, numBoxes, _this.boxEncodingSize]);
+                              var reshaped = outputTensor.reshape([
+                                  numCells,
+                                  numCells,
+                                  numBoxes,
+                                  _this.boxEncodingSize
+                              ]);
                               var boxes = reshaped.slice([0, 0, 0, 0], [numCells, numCells, numBoxes, 4]);
                               var scores = reshaped.slice([0, 0, 0, 4], [numCells, numCells, numBoxes, 1]);
                               var classScores = _this.withClassScores
@@ -4978,12 +5023,20 @@
                           if (!(anchor < numBoxes)) return [3 /*break*/, 10];
                           score = sigmoid(scoresData[row][col][anchor][0]);
                           if (!(!scoreThreshold || score > scoreThreshold)) return [3 /*break*/, 9];
-                          ctX = ((col + sigmoid(boxesData[row][col][anchor][0])) / numCells) * correctionFactorX;
-                          ctY = ((row + sigmoid(boxesData[row][col][anchor][1])) / numCells) * correctionFactorY;
-                          width_1 = ((Math.exp(boxesData[row][col][anchor][2]) * this.config.anchors[anchor].x) / numCells) * correctionFactorX;
-                          height_1 = ((Math.exp(boxesData[row][col][anchor][3]) * this.config.anchors[anchor].y) / numCells) * correctionFactorY;
-                          x = (ctX - (width_1 / 2));
-                          y = (ctY - (height_1 / 2));
+                          ctX = ((col + sigmoid(boxesData[row][col][anchor][0])) / numCells) *
+                              correctionFactorX;
+                          ctY = ((row + sigmoid(boxesData[row][col][anchor][1])) / numCells) *
+                              correctionFactorY;
+                          width_1 = ((Math.exp(boxesData[row][col][anchor][2]) *
+                              this.config.anchors[anchor].x) /
+                              numCells) *
+                              correctionFactorX;
+                          height_1 = ((Math.exp(boxesData[row][col][anchor][3]) *
+                              this.config.anchors[anchor].y) /
+                              numCells) *
+                              correctionFactorY;
+                          x = ctX - width_1 / 2;
+                          y = ctY - height_1 / 2;
                           pos = { row: row, col: col, anchor: anchor };
                           if (!this.withClassScores) return [3 /*break*/, 7];
                           return [4 /*yield*/, this.extractPredictedClass(classScoresTensor, pos)];
@@ -5025,19 +5078,28 @@
                           return [4 /*yield*/, classesTensor.array()];
                       case 1:
                           classesData = _a.sent();
-                          return [2 /*return*/, Array(this.config.classes.length).fill(0)
+                          return [2 /*return*/, Array(this.config.classes.length)
+                                  .fill(0)
                                   .map(function (_, i) { return classesData[row][col][anchor][i]; })
                                   .map(function (classScore, label) { return ({
                                   classScore: classScore,
                                   label: label
                               }); })
-                                  .reduce(function (max, curr) { return max.classScore > curr.classScore ? max : curr; })];
+                                  .reduce(function (max, curr) { return (max.classScore > curr.classScore ? max : curr); })];
                   }
               });
           });
       };
       TinyYolov2Base.DEFAULT_FILTER_SIZES = [
-          3, 16, 32, 64, 128, 256, 512, 1024, 1024
+          3,
+          16,
+          32,
+          64,
+          128,
+          256,
+          512,
+          1024,
+          1024
       ];
       return TinyYolov2Base;
   }(NeuralNetwork));
