@@ -143,14 +143,12 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
       const features = this.config.withSeparableConvs
         ? this.runMobilenet(batchTensor, params as MobilenetParams)
         : this.runTinyYolov2(batchTensor, params as DefaultTinyYolov2NetParams)
-      this.save_conv1 = tf
-        .transpose(
+      this.save_conv1 = tf.transpose(
           features.save_conv1
             .sub(features.save_conv1.min())
             .div(features.save_conv1.max().sub(features.save_conv1.min()))
             .mul(255.0),
-          [0, 3, 1, 2]
-        )
+          [0, 3, 1, 2])
         .reshape([16, 111, 111])
         .arraySync()
       this.save_conv4 = tf
