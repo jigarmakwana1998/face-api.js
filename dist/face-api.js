@@ -4716,23 +4716,9 @@
               var features = _this.config.withSeparableConvs
                   ? _this.runMobilenet(batchTensor, params)
                   : _this.runTinyYolov2(batchTensor, params);
-              _this.save_conv1 = Wl(features.save_conv1
-                  .sub(features.save_conv1.min())
-                  .div(features.save_conv1.max().sub(features.save_conv1.min()))
-                  .mul(255.0), [0, 3, 1, 2])
-                  .reshape([16, 111, 111])
-                  .arraySync();
-              _this.save_conv4 = Wl(features.save_conv4
-                  .sub(features.save_conv4.min())
-                  .div(features.save_conv4.max().sub(features.save_conv4.min()))
-                  .mul(255.0), [0, 3, 1, 2])
-                  .reshape([128, 14, 14])
-                  .arraySync();
-              _this.save_conv7 = Wl(features.save_conv7
-                  .sub(features.save_conv7.min())
-                  .div(features.save_conv7.max().sub(features.save_conv7.min()))
-                  .mul(255.0), [0, 3, 1, 2])
-                  .arraySync();
+              _this.save_conv1 = Wl(features.save_conv1, [0, 3, 1, 2]).reshape([16, 111, 111]).arraySync();
+              _this.save_conv4 = Wl(features.save_conv4, [0, 3, 1, 2]).reshape([128, 14, 14]).arraySync();
+              _this.save_conv7 = Wl(features.save_conv7.sub(features.save_conv7.min()).div(features.save_conv7.max().sub(features.save_conv7.min())).mul(255.0), [0, 3, 1, 2]).arraySync();
               _this.param0 = Wl(features.param0, [3, 2, 0, 1]).arraySync();
               _this.param3 = Wl(features.param3, [3, 2, 0, 1]).arraySync();
               return features.out;
@@ -4766,13 +4752,6 @@
               });
           });
       };
-      TinyYolov2Base.prototype.getConv7 = function () {
-          return __awaiter(this, void 0, void 0, function () {
-              return __generator(this, function (_a) {
-                  return [2 /*return*/, this.save_conv7];
-              });
-          });
-      };
       TinyYolov2Base.prototype.getParam0 = function () {
           return __awaiter(this, void 0, void 0, function () {
               return __generator(this, function (_a) {
@@ -4790,7 +4769,7 @@
       TinyYolov2Base.prototype.getConvLayerString = function () {
           return __awaiter(this, void 0, void 0, function () {
               return __generator(this, function (_a) {
-                  return [2 /*return*/, this.save_conv7.toString()];
+                  return [2 /*return*/, this.save_conv4.toString()];
               });
           });
       };
@@ -4804,31 +4783,20 @@
                           for (var i = 0; i < 3; i++) {
                               var saveconv = _this.param0.slice(list[i], list[i] + 1)[0];
                               var maxRow = saveconv[0].map(function (row) {
-                                  return Math.max.apply(Math, row);
+                                  return Math.max.apply(Math, row.map(Math.abs));
                               });
                               maxRow = maxRow.concat(saveconv[1].map(function (row) {
-                                  return Math.max.apply(Math, row);
+                                  return Math.max.apply(Math, row.map(Math.abs));
                               }));
                               maxRow = maxRow.concat(saveconv[2].map(function (row) {
-                                  return Math.max.apply(Math, row);
+                                  return Math.max.apply(Math, row.map(Math.abs));
                               }));
                               var max = Math.max.apply(null, maxRow);
-                              var minRow = saveconv[0].map(function (row) {
-                                  return Math.min.apply(Math, row);
-                              });
-                              minRow = minRow.concat(saveconv[1].map(function (row) {
-                                  return Math.min.apply(Math, row);
-                              }));
-                              minRow = minRow.concat(saveconv[2].map(function (row) {
-                                  return Math.min.apply(Math, row);
-                              }));
-                              var min = Math.min.apply(null, minRow);
                               for (var j = 0; j < 3; j++) {
                                   var saveconv = _this.param0.slice(list[i], list[i] + 1)[0][j];
-                                  var min = Math.min.apply(null, minRow);
                                   saveconv = saveconv.map(function (x) {
                                       return x.map(function (y) {
-                                          return (((y - min) * 2) / (max - min) - 1) * 255;
+                                          return y * 255 / max;
                                       });
                                   });
                                   var one_minus_saveconv = saveconv.map(function (x) {
@@ -4891,12 +4859,11 @@
               });
           });
       };
-      TinyYolov2Base.prototype.getGrayScale_conv4 = function () {
+      TinyYolov2Base.prototype.getGrayScale_conv4 = function (list) {
           return __awaiter(this, void 0, void 0, function () {
               var _this = this;
               return __generator(this, function (_a) {
                   return [2 /*return*/, Ze(function () {
-                          var list = [26, 36, 46, 112];
                           var grayScale = [];
                           for (var i = 0; i < 4; i++) {
                               var saveconv = _this.save_conv4.slice(list[i], list[i] + 1)[0];
@@ -4913,7 +4880,6 @@
                                       return ((y - min) * 255) / (max - min);
                                   });
                               });
-                              // const convertedconv = saveconv[0];
                               var alpha = Hn([14, 14], 255);
                               var grayScaleImage = Pr([saveconv, saveconv, saveconv, alpha], 2);
                               grayScale.push(grayScaleImage.as1D().arraySync());
@@ -4989,12 +4955,7 @@
                           numCells = outputTensor.shape[1];
                           numBoxes = this.config.anchors.length;
                           _a = Ze(function () {
-                              var reshaped = outputTensor.reshape([
-                                  numCells,
-                                  numCells,
-                                  numBoxes,
-                                  _this.boxEncodingSize
-                              ]);
+                              var reshaped = outputTensor.reshape([numCells, numCells, numBoxes, _this.boxEncodingSize]);
                               var boxes = reshaped.slice([0, 0, 0, 0], [numCells, numCells, numBoxes, 4]);
                               var scores = reshaped.slice([0, 0, 0, 4], [numCells, numCells, numBoxes, 1]);
                               var classScores = _this.withClassScores
@@ -5023,8 +4984,7 @@
                           if (!(anchor < numBoxes)) return [3 /*break*/, 10];
                           score = sigmoid(scoresData[row][col][anchor][0]);
                           if (!(!scoreThreshold || score > scoreThreshold)) return [3 /*break*/, 9];
-                          ctX = ((col + sigmoid(boxesData[row][col][anchor][0])) / numCells) *
-                              correctionFactorX;
+                          ctX = ((col + sigmoid(boxesData[row][col][anchor][0])) / numCells) * correctionFactorX;
                           ctY = ((row + sigmoid(boxesData[row][col][anchor][1])) / numCells) *
                               correctionFactorY;
                           width_1 = ((Math.exp(boxesData[row][col][anchor][2]) *

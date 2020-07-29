@@ -47,25 +47,25 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
 
   private _config: TinyYolov2Config
 
-  constructor (config: TinyYolov2Config) {
+  constructor(config: TinyYolov2Config) {
     super('TinyYolov2')
     validateConfig(config)
     this._config = config
   }
 
-  public get config (): TinyYolov2Config {
+  public get config(): TinyYolov2Config {
     return this._config
   }
 
-  public get withClassScores (): boolean {
+  public get withClassScores(): boolean {
     return this.config.withClassScores || this.config.classes.length > 1
   }
 
-  public get boxEncodingSize (): number {
+  public get boxEncodingSize(): number {
     return 5 + (this.withClassScores ? this.config.classes.length : 0)
   }
 
-  public runTinyYolov2 (x: tf.Tensor4D, params: DefaultTinyYolov2NetParams) {
+  public runTinyYolov2(x: tf.Tensor4D, params: DefaultTinyYolov2NetParams) {
     let out = convWithBatchNorm(x, params.conv0)
     out = tf.maxPool(out, [2, 2], [2, 2], 'same')
     let get_conv1 = out
@@ -94,7 +94,7 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     }
   }
 
-  public runMobilenet (x: tf.Tensor4D, params: MobilenetParams) {
+  public runMobilenet(x: tf.Tensor4D, params: MobilenetParams) {
     let out = this.config.isFirstLayerConv2d
       ? leaky(convLayer(x, params.conv0 as ConvParams, 'valid', false))
       : depthwiseSeparableConv(x, params.conv0 as SeparableConvParams)
@@ -126,7 +126,7 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     }
   }
 
-  public forwardInput (input: NetInput, inputSize: number): tf.Tensor4D {
+  public forwardInput(input: NetInput, inputSize: number): tf.Tensor4D {
     const { params } = this
 
     if (!params) {
@@ -143,110 +143,67 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
       const features = this.config.withSeparableConvs
         ? this.runMobilenet(batchTensor, params as MobilenetParams)
         : this.runTinyYolov2(batchTensor, params as DefaultTinyYolov2NetParams)
-      this.save_conv1 = tf.transpose(
-          features.save_conv1
-            .sub(features.save_conv1.min())
-            .div(features.save_conv1.max().sub(features.save_conv1.min()))
-            .mul(255.0),
-          [0, 3, 1, 2])
-        .reshape([16, 111, 111])
-        .arraySync()
-      this.save_conv4 = tf
-        .transpose(
-          features.save_conv4
-            .sub(features.save_conv4.min())
-            .div(features.save_conv4.max().sub(features.save_conv4.min()))
-            .mul(255.0),
-          [0, 3, 1, 2]
-        )
-        .reshape([128, 14, 14])
-        .arraySync()
-      this.save_conv7 = tf
-        .transpose(
-          features.save_conv7
-            .sub(features.save_conv7.min())
-            .div(features.save_conv7.max().sub(features.save_conv7.min()))
-            .mul(255.0),
-          [0, 3, 1, 2]
-        )
-        .arraySync()
+      this.save_conv1 = tf.transpose(features.save_conv1, [0, 3, 1, 2]).reshape([16, 111, 111]).arraySync()
+      this.save_conv4 = tf.transpose(features.save_conv4, [0, 3, 1, 2]).reshape([128, 14, 14]).arraySync()
+      this.save_conv7 = tf.transpose(features.save_conv7.sub(features.save_conv7.min()).div(features.save_conv7.max().sub(features.save_conv7.min())).mul(255.0), [0, 3, 1, 2]).arraySync()
       this.param0 = tf.transpose(features.param0, [3, 2, 0, 1]).arraySync()
       this.param3 = tf.transpose(features.param3, [3, 2, 0, 1]).arraySync()
       return features.out
     })
   }
 
-  public async forward (
+  public async forward(
     input: TNetInput,
     inputSize: number
   ): Promise<tf.Tensor4D> {
     return await this.forwardInput(await toNetInput(input), inputSize)
   }
 
-  public async getConv1 () {
+  public async getConv1() {
     return this.save_conv1
   }
 
-  public async getConv4 () {
+  public async getConv4() {
     return this.save_conv4
   }
 
-  public async getConv7 () {
-    return this.save_conv7
-  }
-
-  public async getParam0 () {
+  public async getParam0() {
     return this.param0
   }
 
-  public async getParam3 () {
+  public async getParam3() {
     return this.param3
   }
 
-  public async getConvLayerString () {
-    return this.save_conv7.toString()
+  public async getConvLayerString() {
+    return this.save_conv4.toString()
   }
 
-  public async getKernel_0 (list: number[]) {
+  public async getKernel_0(list: number[]) {
     return tf.tidy(() => {
       // const list = [2, 8, 11]
       var grayScale = []
       for (let i = 0; i < 3; i++) {
         var saveconv = this.param0.slice(list[i], list[i] + 1)[0]
-        var maxRow = saveconv[0].map(function (row: any) {
-          return Math.max.apply(Math, row)
+        var maxRow = saveconv[0].map(function (row: number[]) {
+          return Math.max.apply(Math, row.map(Math.abs))
         })
         maxRow = maxRow.concat(
-          saveconv[1].map(function (row: any) {
-            return Math.max.apply(Math, row)
+          saveconv[1].map(function (row: number[]) {
+            return Math.max.apply(Math, row.map(Math.abs))
           })
         )
         maxRow = maxRow.concat(
-          saveconv[2].map(function (row: any) {
-            return Math.max.apply(Math, row)
+          saveconv[2].map(function (row: number[]) {
+            return Math.max.apply(Math, row.map(Math.abs))
           })
         )
         var max = Math.max.apply(null, maxRow)
-        var minRow = saveconv[0].map(function (row: any) {
-          return Math.min.apply(Math, row)
-        })
-        minRow = minRow.concat(
-          saveconv[1].map(function (row: any) {
-            return Math.min.apply(Math, row)
-          })
-        )
-        minRow = minRow.concat(
-          saveconv[2].map(function (row: any) {
-            return Math.min.apply(Math, row)
-          })
-        )
-        var min = Math.min.apply(null, minRow)
         for (var j = 0; j < 3; j++) {
           var saveconv = this.param0.slice(list[i], list[i] + 1)[0][j]
-          var min = Math.min.apply(null, minRow)
           saveconv = saveconv.map(function (x: any[]) {
             return x.map(function (y) {
-              return (((y - min) * 2) / (max - min) - 1) * 255
+              return y * 255 / max
             })
           })
           var one_minus_saveconv = saveconv.map(function (x: any[]) {
@@ -284,7 +241,7 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     })
   }
 
-  public async getGrayScale (list: number[]) {
+  public async getGrayScale(list: number[]) {
     return tf.tidy(() => {
       // const list = [2, 8, 11]
       var grayScale = []
@@ -314,9 +271,8 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     })
   }
 
-  public async getGrayScale_conv4 () {
+  public async getGrayScale_conv4(list: number[]) {
     return tf.tidy(() => {
-      const list = [26, 36, 46, 112]
       var grayScale = []
       for (let i = 0; i < 4; i++) {
         let saveconv = this.save_conv4.slice(list[i], list[i] + 1)[0]
@@ -333,19 +289,15 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
             return ((y - min) * 255) / (max - min)
           })
         })
-        // const convertedconv = saveconv[0];
         const alpha = tf.fill([14, 14], 255)
-        const grayScaleImage = tf.stack(
-          [saveconv, saveconv, saveconv, alpha],
-          2
-        )
+        const grayScaleImage = tf.stack([saveconv, saveconv, saveconv, alpha], 2)
         grayScale.push(grayScaleImage.as1D().arraySync())
       }
       return grayScale
     })
   }
 
-  public async detect (
+  public async detect(
     input: TNetInput,
     forwardParams: ITinyYolov2Options = {}
   ): Promise<ObjectDetection[]> {
@@ -394,15 +346,15 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     return detections
   }
 
-  protected getDefaultModelName (): string {
+  protected getDefaultModelName(): string {
     return ''
   }
 
-  protected extractParamsFromWeigthMap (weightMap: tf.NamedTensorMap) {
+  protected extractParamsFromWeigthMap(weightMap: tf.NamedTensorMap) {
     return extractParamsFromWeigthMap(weightMap, this.config)
   }
 
-  protected extractParams (weights: Float32Array) {
+  protected extractParams(weights: Float32Array) {
     const filterSizes =
       this.config.filterSizes || TinyYolov2Base.DEFAULT_FILTER_SIZES
 
@@ -420,7 +372,7 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     )
   }
 
-  protected async extractBoxes (
+  protected async extractBoxes(
     outputTensor: tf.Tensor4D,
     inputBlobDimensions: Dimensions,
     scoreThreshold?: number
@@ -434,12 +386,7 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     const numBoxes = this.config.anchors.length
 
     const [boxesTensor, scoresTensor, classScoresTensor] = tf.tidy(() => {
-      const reshaped = outputTensor.reshape([
-        numCells,
-        numCells,
-        numBoxes,
-        this.boxEncodingSize
-      ])
+      const reshaped = outputTensor.reshape([numCells, numCells, numBoxes, this.boxEncodingSize])
 
       const boxes = reshaped.slice(
         [0, 0, 0, 0],
@@ -451,12 +398,12 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
       )
       const classScores = this.withClassScores
         ? tf.softmax(
-            reshaped.slice(
-              [0, 0, 0, 5],
-              [numCells, numCells, numBoxes, this.config.classes.length]
-            ),
-            3
-          )
+          reshaped.slice(
+            [0, 0, 0, 5],
+            [numCells, numCells, numBoxes, this.config.classes.length]
+          ),
+          3
+        )
         : tf.scalar(0)
       return [boxes, scores, classScores]
     })
@@ -470,11 +417,8 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
         for (let anchor = 0; anchor < numBoxes; anchor++) {
           const score = sigmoid(scoresData[row][col][anchor][0])
           if (!scoreThreshold || score > scoreThreshold) {
-            const ctX =
-              ((col + sigmoid(boxesData[row][col][anchor][0])) / numCells) *
-              correctionFactorX
-            const ctY =
-              ((row + sigmoid(boxesData[row][col][anchor][1])) / numCells) *
+            const ctX = ((col + sigmoid(boxesData[row][col][anchor][0])) / numCells) * correctionFactorX
+            const ctY = ((row + sigmoid(boxesData[row][col][anchor][1])) / numCells) *
               correctionFactorY
             const width =
               ((Math.exp(boxesData[row][col][anchor][2]) *
@@ -493,9 +437,9 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
             const pos = { row, col, anchor }
             const { classScore, label } = this.withClassScores
               ? await this.extractPredictedClass(
-                  classScoresTensor as tf.Tensor4D,
-                  pos
-                )
+                classScoresTensor as tf.Tensor4D,
+                pos
+              )
               : { classScore: 1, label: 0 }
 
             results.push({
@@ -517,7 +461,7 @@ export class TinyYolov2Base extends NeuralNetwork<TinyYolov2NetParams> {
     return results
   }
 
-  private async extractPredictedClass (
+  private async extractPredictedClass(
     classesTensor: tf.Tensor4D,
     pos: { row: number; col: number; anchor: number }
   ) {
